@@ -9,4 +9,5 @@ import (
 func AuthRoutes(r chi.Router) {
 	r.Post("/register", handlers.Register)
 	r.Post("/login", handlers.Login)
+	r.Post("/refresh", handlers.RefreshToken)
 }
