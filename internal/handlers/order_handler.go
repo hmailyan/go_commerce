@@ -18,10 +18,6 @@ type CreateOrderRequest struct {
 
 func GetOrders(w http.ResponseWriter, r *http.Request) {
 	userEmail := r.Context().Value("userEmail")
-	if userEmail == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
 
 	var orders []models.Order
 	err := db.DB.Preload("OrderItems.Product").
@@ -44,10 +40,6 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userEmail := r.Context().Value("userEmail")
-	if userEmail == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
 
 	var total float64
 	var orderItems []models.OrderItem
