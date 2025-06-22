@@ -17,6 +17,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/auth", routes.AuthRoutes)
 	r.Route("/products", routes.ProductRoutes)
+	r.Route("/orders", routes.OrderRouters)
 
 	r.Get("/health", handlers.HealthCheck)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

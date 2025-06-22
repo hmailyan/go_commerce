@@ -26,7 +26,7 @@ func Init() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = db.AutoMigrate(&models.Product{}, &models.User{})
+	err = db.AutoMigrate(&models.Product{}, &models.User{}, &models.Order{}, &models.OrderItem{})
 	if err != nil {
 		log.Fatal("Migration failed:", err)
 	}
