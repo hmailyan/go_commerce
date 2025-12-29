@@ -8,7 +8,7 @@ import (
 	"github.com/hmailyan/go_ecommerce/models"
 )
 
-func generateUserTokens(u models.User) (string, string, error) {
+func GenerateUserTokens(u models.User) (string, string, error) {
 	secret := os.Getenv("SECRET_KEY")
 	if secret == "" {
 		secret = "secret" // fallback, replace in production

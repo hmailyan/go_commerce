@@ -3,46 +3,49 @@ package controllers
 
 import (
 	"context"
-	"errors"
+	"net/http"
+	"time"
 
 	"go_commerce/models"
 
+	"github.com/gin-gonic/gin"
+	"github.com/hmailyan/go_ecommerce/database"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var ProductCollection *mongo.Collection = database.ProductData(database.Client, "products")
 
 // SearchProduct searches products by name (case-insensitive regex).
 // - ctx: request context
 // - coll: mongo collection for products
 // - query: search term for product_name
 // - limit: if >0, limits the number of returned documents
-func SearchProduct(ctx context.Context, coll *mongo.Collection, query string, limit int64) ([]models.Product, error) {
-	if coll == nil {
-		return nil, errors.New("nil collection")
-	}
-	if query == "" {
-		return nil, errors.New("empty query")
-	}
+func SearchProduct() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var productList []models.Product
 
-	filter := bson.M{"product_name": primitive.Regex{Pattern: query, Options: "i"}}
-	findOpts := options.Find()
-	if limit > 0 {
-		findOpts.SetLimit(limit)
-	}
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
 
-	cur, err := coll.Find(ctx, filter, findOpts)
-	if err != nil {
-		return nil, err
-	}
-	defer cur.Close(ctx)
+		cursor, err := ProductCollection.Find(ctx, bson.D{}).All(&productList)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve products"})
+		}
+		err = cursor.All(ctx, &productList)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		defer cursor.Close()
 
-	var products []models.Product
-	if err := cur.All(ctx, &products); err != nil {
-		return nil, err
+		if err = cursor.Err(); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "invalid"})
+		}
+		defer cancel()
+
+		c.IndentedJSON(http.StatusOK, productList)
+
 	}
-	return products, nil
 }
 
 // SearchProductByQuery performs a general query against the products collection.
@@ -50,24 +53,39 @@ func SearchProduct(ctx context.Context, coll *mongo.Collection, query string, li
 // - coll: mongo collection for products
 // - q: a bson.M query (pass nil to match all)
 // - findOpts: optional *options.FindOptions
-func SearchProductByQuery(ctx context.Context, coll *mongo.Collection, q bson.M, findOpts ...*options.FindOptions) ([]models.Product, error) {
-	if coll == nil {
-		return nil, errors.New("nil collection")
-	}
-	if q == nil {
-		q = bson.M{}
+func SearchProductByQuery() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var searchProducts []models.Product
+		queryParams := c.Query("name")
+
+		if queryParams == "" {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'name' is required"})
+			return
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		searchQueryDB, err := ProductCollection.Find(ctx, bson.M{"product_name": bson.M{"$regex": queryParams}})
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
+			return
+		}
+
+		err = searchQueryDB.All(ctx, &searchProducts)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
+			return
+		}
+		defer searchQueryDB.Close(ctx)
+
+		if err = searchQueryDB.Err(); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
+			return
+		}
+		defer cancel()
+
+		c.IndentedJSON(http.StatusOK, searchProducts)
 	}
 
-	opts := options.MergeFindOptions(findOpts...)
-	cur, err := coll.Find(ctx, q, opts)
-	if err != nil {
-		return nil, err
-	}
-	defer cur.Close(ctx)
-
-	var products []models.Product
-	if err := cur.All(ctx, &products); err != nil {
-		return nil, err
-	}
-	return products, nil
 }

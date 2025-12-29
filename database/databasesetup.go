@@ -37,17 +37,12 @@ func DBSetup() *mongo.Client {
 
 var Client *mongo.Client = DBSetup()
 
-func UserData(client *mongo.Client, collectionName string) *UserData {
-	// collection := client.Database("ecommerce").Collection(collectionName)
-	// return &UserData{
-	// 	Collection: collection,
-	// }
+func UserData(client *mongo.Client, collectionName string) *mongo.Collection {
+	collection := client.Database("ecommerce").Collection(collectionName)
+	return collection
 }
 
-func ProductData(client *mongo.Client, collectionName string) *ProductData {
-
-	// collection := client.Database("ecommerce").Collection(collectionName)
-	// return &ProductData{
-	// 	Collection: collection,
-	// }
+func ProductData(client *mongo.Client, collectionName string) *mongo.Collection {
+	collection := client.Database("ecommerce").Collection(collectionName)
+	return collection
 }

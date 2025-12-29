@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"time"
-
 	"github.com/hmailyan/go_ecommerce/models"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -20,7 +19,7 @@ var (
 	ErrCantRemoveItemCart = errors.New("cannot remove item from cart")
 	ErrCantGetItem = errors.New("cannot get cart items")
 	ErrCantByCartItem = errors.New("cannot buy cart item")
-	
+
 )
 
 func CartData(client *mongo.Client, collectionName string) *CartData

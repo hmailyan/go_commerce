@@ -3,19 +3,23 @@ package controllers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/hmailyan/go_ecommerce/database"
+	"github.com/hmailyan/go_ecommerce/models"
+	"github.com/hmailyan/go_ecommerce/services"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/hmailyan/go_ecommerce/models"
 )
 
-var UserCollection *mongo.Collection
+var UserCollection *mongo.Collection = database.UserData(database.Client, "users")
+var validate = validator.New()
 
 // SetUserCollection allows wiring the MongoDB collection from main
 func SetUserCollection(c *mongo.Collection) {
@@ -23,140 +27,112 @@ func SetUserCollection(c *mongo.Collection) {
 }
 
 // SignUp registers a new user. Expects JSON matching models.User (password in plain text).
-func SignUp(c *gin.Context) {
-	if UserCollection == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user collection not initialized"})
-		return
+func SignUp(c *gin.HandlerFunc) gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		var user models.User
+
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		validationErr := validate.Struct(user)
+		if validationErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
+
+		count, err := UserCollection.CountDocuments(ctx, bson.M{"email": user.Email})
+
+		if err != nil {
+			log.Panic(err, "error occurred while checking for the email")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while checking for the email"})
+			return
+		}
+
+		if count > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "this email already exists"})
+			return
+		}
+
+		count, err = UserCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
+
+		if err != nil {
+			log.Panic(err, "error occurred while checking for the phone number")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while checking for the phone number"})
+			return
+		}
+
+		if count > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "this phone number already exists"})
+			return
+		}
+		password := services.HashPassword(*user.Password)
+		user.Password = &password
+
+		user.Created_At = time.Now()
+		user.Updated_At = time.Now()
+		user.ID = primitive.NewObjectID()
+		user.User_ID = user.ID.Hex()
+
+		token, refreshToken, _ := services.GenerateUserTokens(*user)
+		user.Token = &token
+		user.Refreshtoken = &refreshToken
+		user.UserCart = make([]models.ProductUser, 0)
+		user.Address_Details = make([]models.Address, 0)
+		user.Order_Status = make([]models.Order, 0)
+
+		_, insertErr := UserCollection.InsertOne(ctx, user)
+		if insertErr != nil {
+			log.Panic(insertErr, "user item was not created")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user item was not created"})
+			return
+		}
+		defer cancel()
+
+		c.JSON(http.StatusCreated, gin.H{"message": "user created successfully"})
+
 	}
-
-	var input models.User
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
-		return
-	}
-
-	// basic required checks
-	if input.Email == "" || input.Password == "" || input.First_Name == "" || input.Last_Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "first_name, last_name, email and password are required"})
-		return
-	}
-
-	// check existing user by email
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	count, err := UserCollection.CountDocuments(ctx, bson.M{"email": input.Email})
-	if err == nil && count > 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "email already registered"})
-		return
-	}
-
-	// hash password
-	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
-		return
-	}
-
-	now := time.Now()
-	newID := primitive.NewObjectID()
-	input.ID = newID
-	input.Password = string(hashed)
-	input.Created_At = now
-	input.Updated_At = now
-
-	accessToken, refreshToken, err := generateUserTokens(input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate tokens"})
-		return
-	}
-	input.Token = accessToken
-	input.Refreshtoken = refreshToken
-
-	_, err = UserCollection.InsertOne(ctx, input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user", "details": err.Error()})
-		return
-	}
-
-	// do not return password
-	input.Password = ""
-	c.JSON(http.StatusCreated, gin.H{
-		"message":       "user created",
-		"user":          input,
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	})
 }
 
 // Login authenticates a user by email and password.
-func Login(c *gin.Context) {
-	if UserCollection == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user collection not initialized"})
-		return
-	}
+func Login(c *gin.Context) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
 
-	var creds struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if err := c.ShouldBindJSON(&creds); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-	if creds.Email == "" || creds.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password required"})
-		return
-	}
+		var user models.User
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+		err := UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
+		defer cancel()
 
-	var user models.User
-	err := UserCollection.FindOne(ctx, bson.M{"email": creds.Email}).Decode(&user)
-	if err == mongo.ErrNoDocuments {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to query user"})
-		return
-	}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "email or password is incorrect"})
+			return
+		}
 
-	// compare password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
+		PasswordIsValid, msg := services.VerifyPassword(*user.Password, *foundUser.Password)
+		defer cancel()
 
-	// generate new tokens and update
-	accessToken, refreshToken, err := generateUserTokens(user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate tokens"})
-		return
-	}
+		if !PasswordIsValid {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			fmt.Println(msg)
+			return
+		}
+		token, refreshToken, _ := services.GenerateUserTokens(*foundUser)
+		defer cancel()
 
-	update := bson.M{
-		"$set": bson.M{
-			"token":         accessToken,
-			"refresh_token": refreshToken,
-			"updated_at":    time.Now(),
-		},
-	}
-	_, err = UserCollection.UpdateByID(ctx, user.ID, update)
-	if err != nil {
-		// not fatal for login, but report
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update user tokens"})
-		return
-	}
+		UpdateAllTokens(token, refreshToken, foundUser.User_ID)
 
-	user.Password = ""
-	user.Token = accessToken
-	user.Refreshtoken = refreshToken
+		c.JSON(http.StatusFound, foundUser)
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":       "login successful",
-		"user":          user,
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	})
+	}
 }
