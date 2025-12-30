@@ -154,3 +154,56 @@ func (app *Application) InsendBuy() gin.HandlerFunc {
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "Instant buy processed successfully"})
 	}
 }
+
+func GetItemFromCart() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user_id := c.Query("id")
+
+		if user_id == "" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User ID is required"})
+			c.Abort()
+			return
+		}
+
+		user_id, err := primitive.ObjectIDFromHex(user_id)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+			c.Abort()
+			return
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		var filledCart models.User
+		err = UserCollection.FindOne(ctx, bson.D{primitive.E{key: "_id", value: user_id}}).Decode(&filledCart)
+
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
+			c.Abort()
+			return
+		}
+
+		filler_match := bson.D{{Key: "$match", Value: bson.D{primitive.E{Key: "_id", Value: user_id}}}}
+		unwind_match := bson.D{{Key: "$unwind", Value: bson.D{primitive.E{Key: "path", Value: "$usercart"}}}}
+		grouping := bson.D{{Key: "$group", Value: bson.D{primitive.E{Key: "_id", Value: "$_id"}, {Key: "total", Value: bson.D{{Key: "$sum", Value: "$usercart.price"}}}}}}
+
+		pointCursor, err := UserCollection.Aggregate(ctx, mongo.Pipeline{filler_match, unwind_match, grouping})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+			return
+		}
+
+		var listing []bson.M
+		if err = pointCursor.All(ctx, &listing); err != nil {
+			log.Fatal(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		for _, json := range listing {
+			c.IndentedJSON(http.StatusOK, json["total"])
+			c.IndentedJSON(http.StatusOK, filledCart.UserCart)
+		}
+		ctx.Done()
+	}
+}
