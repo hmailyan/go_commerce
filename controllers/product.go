@@ -28,7 +28,7 @@ func SearchProduct() gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 
-		cursor, err := ProductCollection.Find(ctx, bson.D{}).All(&productList)
+		cursor, err := ProductCollection.Find(ctx, bson.D{})
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve products"})
 		}
@@ -36,7 +36,7 @@ func SearchProduct() gin.HandlerFunc {
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
-		defer cursor.Close()
+		defer cursor.Close(ctx)
 
 		if err = cursor.Err(); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "invalid"})
@@ -86,6 +86,21 @@ func SearchProductByQuery() gin.HandlerFunc {
 		defer cancel()
 
 		c.IndentedJSON(http.StatusOK, searchProducts)
+	}
+
+}
+
+func ProductViewerAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// var products models.Product
+
+		// var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		// defer cancel()
+		// if err := c.BindJSON(&products); err != nil {
+		// 	c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		// 	return
+		// }
+		c.JSON(http.StatusOK, "Successfully")
 	}
 
 }

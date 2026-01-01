@@ -1,15 +1,22 @@
 package controllers
 
-import {
-	"go.mongodb.org/mongo-driver/mongo"
+import (
+	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-}
+	"context"
+
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/hmailyan/go_ecommerce/database"
+	"github.com/hmailyan/go_ecommerce/models"
+)
 
 type Application struct {
 	prodCollection *mongo.Collection
@@ -23,36 +30,37 @@ func NewApplication(prodCollection, userCollection *mongo.Collection) *Applicati
 	}
 }
 
-func (app *Application) AddToCart() gin.Handler {
+func (app *Application) AddToCart() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Add to new func
 		productQueryID := c.Query("id")
 		if productQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
 			return
 		}
 
 		userQueryID := c.Query("UserID")
 		if userQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
 			return
 		}
 
 		productID, err := primitive.ObjectIDFromHex(productQueryID)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
 			return
 		}
 
 		userID, err := primitive.ObjectIDFromHex(userQueryID)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Invalid User ID"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid User ID"})
+			return
 		}
 
 		var ctx, cancel = context.WithTimeout(context.Background(), 5.*time.Second)
 		defer cancel()
 
-		err = database.AddProductToCart(ctx, app.prodCollection, app.userCollection, productID, userID)
+		err = database.AddProductToCart(ctx, app.prodCollection, app.userCollection, productID, userID.Hex())
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to add product to cart"})
 		}
@@ -67,32 +75,32 @@ func (app *Application) RemoveFromCart() gin.HandlerFunc {
 
 		productQueryID := c.Query("id")
 		if productQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
 			return
 		}
 
 		userQueryID := c.Query("UserID")
 		if userQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
 			return
 		}
 
 		productID, err := primitive.ObjectIDFromHex(productQueryID)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
 			return
 		}
 
 		userID, err := primitive.ObjectIDFromHex(userQueryID)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Invalid User ID"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid User ID"})
 			return
 		}
 
 		var ctx, cancel = context.WithTimeout(context.Background(), 5.*time.Second)
 		defer cancel()
 
-		err = database.RemoveCartItem(ctx, app.prodCollection, app.userCollection, productID, userID)
+		err = database.RemoveCartItem(ctx, app.prodCollection, app.userCollection, productID, userID.Hex())
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove product from cart"})
 		}
@@ -104,50 +112,52 @@ func (app *Application) BuyFromCart() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userQueryID := c.Query("UserID")
 		if userQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+			return
 		}
 
 		var ctx, cancel = context.WithTimeout(context.Background(), 5.*time.Second)
 		defer cancel()
 
-		err = database.ByItemFromCart(ctx, app.prodCollection, app.userCollection, userID)
+		err := database.ByItemsFromCart(ctx, app.userCollection, userQueryID)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to buy products from cart"})
+			return
 		}
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "Products bought from cart successfully"})
 	}
 }
 
-func (app *Application) InsendBuy() gin.HandlerFunc {
+func (app *Application) InstantBuy() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		productQueryID := c.Query("id")
 		if productQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
 			return
 		}
 
 		userQueryID := c.Query("UserID")
 		if userQueryID == "" {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
 			return
 		}
 
 		productID, err := primitive.ObjectIDFromHex(productQueryID)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
 			return
 		}
 
 		userID, err := primitive.ObjectIDFromHex(userQueryID)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, gin.H{"error": "Invalid User ID"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid User ID"})
 			return
 		}
 
 		var ctx, cancel = context.WithTimeout(context.Background(), 5.*time.Second)
 		defer cancel()
 
-		err = database.InstandBuyer(ctx, app.prodCollection, app.userCollection, productID, userID)
+		err = database.InstantBuy(ctx, app.prodCollection, app.userCollection, productID, userID.Hex())
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process instant buy"})
 		}
@@ -157,15 +167,15 @@ func (app *Application) InsendBuy() gin.HandlerFunc {
 
 func GetItemFromCart() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user_id := c.Query("id")
+		userQueryID := c.Query("id")
 
-		if user_id == "" {
+		if userQueryID == "" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User ID is required"})
 			c.Abort()
 			return
 		}
 
-		user_id, err := primitive.ObjectIDFromHex(user_id)
+		user_id, err := primitive.ObjectIDFromHex(userQueryID)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
@@ -177,7 +187,7 @@ func GetItemFromCart() gin.HandlerFunc {
 		defer cancel()
 
 		var filledCart models.User
-		err = UserCollection.FindOne(ctx, bson.D{primitive.E{key: "_id", value: user_id}}).Decode(&filledCart)
+		err = UserCollection.FindOne(ctx, bson.D{primitive.E{Key: "_id", Value: user_id}}).Decode(&filledCart)
 
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})

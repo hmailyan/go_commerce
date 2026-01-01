@@ -5,34 +5,36 @@ import (
 	"net/http"
 	"time"
 
-	"go_commerce/models"
+	"github.com/hmailyan/go_ecommerce/models"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func AddAddress() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user_id := c.Query("id")
+		userQueryID := c.Query("id")
 
-		if user_id == "" {
+		if userQueryID == "" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User ID is required"})
 			c.Abort()
 			return
 		}
-		user_id, err := primitive.ObjectIDFromHex(user_id)
+
+		_, err := primitive.ObjectIDFromHex(userQueryID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
 			c.Abort()
 			return
 		}
 
-		var addresses models.Address
+		var address models.Address
 
-		addresses.Address_ID = primitive.NewObjectID()
+		address.Address_ID = primitive.NewObjectID()
 
-		if err := c.BindJSON(&addresses); err != nil {
+		if err := c.BindJSON(&address); err != nil {
 			c.IndentedJSON(http.StatusNotAcceptable, err.Error())
 		}
 
@@ -63,13 +65,13 @@ func AddAddress() gin.HandlerFunc {
 		}
 		if size < 2 {
 			filter := bson.D{primitive.E{Key: "_id", Value: address}}
-			update := bson.D{{"$push", bson.D{primitive.E{Key: "addresses", Value: addresses}}}}
+			update := bson.D{{"$push", bson.D{primitive.E{Key: "addresses", Value: address}}}}
 
 			_, err = UserCollection.UpdateOne(ctx, filter, update)
 			if err != nil {
 				panic(err)
 			}
-			c.IndentedJSON(http.StatusOk, "Successfully added address")
+			c.IndentedJSON(http.StatusOK, "Successfully added address")
 		} else {
 			c.IndentedJSON(http.StatusBadRequest, "You can add maximum 2 addresses")
 		}
@@ -80,14 +82,14 @@ func AddAddress() gin.HandlerFunc {
 
 func EditHomeAddress() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user_id := c.Query("id")
-		if user_id == "" {
+		userQueryID := c.Query("id")
+		if userQueryID == "" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User ID is required"})
 			c.Abort()
 			return
 		}
 
-		user_id, err := primitive.ObjectIDFromHex(user_id)
+		user_id, err := primitive.ObjectIDFromHex(userQueryID)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
 		}
@@ -115,14 +117,14 @@ func EditHomeAddress() gin.HandlerFunc {
 
 func EditWorkAddress() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user_id := c.Query("id")
-		if user_id == "" {
+		userQueryID := c.Query("id")
+		if userQueryID == "" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User ID is required"})
 			c.Abort()
 			return
 		}
 
-		user_id, err := primitive.ObjectIDFromHex(user_id)
+		user_id, err := primitive.ObjectIDFromHex(userQueryID)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
 		}
@@ -150,15 +152,15 @@ func EditWorkAddress() gin.HandlerFunc {
 
 func DeleteAddress() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user_id := c.Query("id")
+		userQueryID := c.Query("id")
 
-		if user_id == "" {
+		if userQueryID == "" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User ID is required"})
 			c.Abort()
 			return
 		}
 		addresses := make([]models.Address, 0)
-		user_id, err := primitive.ObjectIDFromHex(user_id)
+		user_id, err := primitive.ObjectIDFromHex(userQueryID)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})

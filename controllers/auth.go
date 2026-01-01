@@ -3,6 +3,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var UserCollection *mongo.Collection = database.UserData(database.Client, "users")
@@ -27,7 +27,7 @@ func SetUserCollection(c *mongo.Collection) {
 }
 
 // SignUp registers a new user. Expects JSON matching models.User (password in plain text).
-func SignUp(c *gin.HandlerFunc) gin.HandlerFunc {
+func SignUp() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -71,17 +71,17 @@ func SignUp(c *gin.HandlerFunc) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": "this phone number already exists"})
 			return
 		}
-		password, _ := services.HashPassword(*user.Password)
-		user.Password = &password
+		password, _ := services.HashPassword(user.Password)
+		user.Password = password
 
 		user.Created_At = time.Now()
 		user.Updated_At = time.Now()
 		user.ID = primitive.NewObjectID()
 		user.User_ID = user.ID.Hex()
 
-		token, refreshToken, _ := services.GenerateUserTokens(*user)
-		user.Token = &token
-		user.Refreshtoken = &refreshToken
+		token, refreshToken, _ := services.GenerateUserTokens(user)
+		user.Token = token
+		user.Refreshtoken = refreshToken
 		user.UserCart = make([]models.ProductUser, 0)
 		user.Address_Details = make([]models.Address, 0)
 		user.Order_Status = make([]models.Order, 0)
@@ -100,12 +100,13 @@ func SignUp(c *gin.HandlerFunc) gin.HandlerFunc {
 }
 
 // Login authenticates a user by email and password.
-func Login(c *gin.Context) gin.HandlerFunc {
+func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 
 		var user models.User
+		var foundUser models.User
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -119,7 +120,7 @@ func Login(c *gin.Context) gin.HandlerFunc {
 			return
 		}
 
-		PasswordIsValid, msg := services.VerifyPassword(*user.Password, *foundUser.Password)
+		PasswordIsValid, msg := services.VerifyPassword(user.Password, foundUser.Password)
 		defer cancel()
 
 		if !PasswordIsValid {
@@ -127,10 +128,10 @@ func Login(c *gin.Context) gin.HandlerFunc {
 			fmt.Println(msg)
 			return
 		}
-		token, refreshToken, _ := services.GenerateUserTokens(*foundUser)
+		token, refreshToken, _ := services.GenerateUserTokens(foundUser)
 		defer cancel()
 
-		UpdateAllTokens(token, refreshToken, foundUser.User_ID)
+		services.UpdateAllTokens(token, refreshToken, foundUser.User_ID)
 
 		c.JSON(http.StatusFound, foundUser)
 
