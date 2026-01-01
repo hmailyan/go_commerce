@@ -30,8 +30,8 @@ func GenerateUserTokens(u models.User) (signedToken string, signedRefreshToken s
 
 	claims := &SignedDetails{
 		Email:      u.Email,
-		First_Name: u.FirstName,
-		Last_Name:  u.LastName,
+		First_Name: u.First_Name,
+		Last_Name:  u.Last_Name,
 		Uid:        u.ID.Hex(),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),
