@@ -71,7 +71,7 @@ func SignUp(c *gin.HandlerFunc) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": "this phone number already exists"})
 			return
 		}
-		password := services.HashPassword(*user.Password)
+		password, _ := services.HashPassword(*user.Password)
 		user.Password = &password
 
 		user.Created_At = time.Now()
