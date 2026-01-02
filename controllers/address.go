@@ -33,20 +33,8 @@ func AddAddress() gin.HandlerFunc {
 		}
 		addr.UserID = uid
 
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-		var count int64
-		if err := database.DB.Model(&models.Address{}).Where("user_id = ?", uid).Count(&count).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		if count >= 2 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "You can add maximum 2 addresses"})
-			return
-		}
-		if err := database.DB.Create(&addr).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err := database.AddAddressGORM(uid, &addr); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Successfully added address", "address": addr})
@@ -69,15 +57,12 @@ func EditHomeAddress() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-		var addr models.Address
-		if err := database.DB.Where("user_id = ?", uid).Order("id asc").Offset(0).Limit(1).First(&addr).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "home address not found"})
-			return
-		}
-		if err := database.DB.Model(&addr).Updates(models.Address{House: editAddress.House, Street: editAddress.Street, City: editAddress.City, Pincode: editAddress.Pincode}).Error; err != nil {
+
+		if err := database.EditHomeAddressGORM(uid, editAddress); err != nil {
+			if err == database.ErrAddressNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "home address not found"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -101,15 +86,12 @@ func EditWorkAddress() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-		var addr models.Address
-		if err := database.DB.Where("user_id = ?", uid).Order("id asc").Offset(1).Limit(1).First(&addr).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "work address not found"})
-			return
-		}
-		if err := database.DB.Model(&addr).Updates(models.Address{House: editAddress.House, Street: editAddress.Street, City: editAddress.City, Pincode: editAddress.Pincode}).Error; err != nil {
+
+		if err := database.EditWorkAddressGORM(uid, editAddress); err != nil {
+			if err == database.ErrAddressNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "work address not found"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -127,10 +109,8 @@ func DeleteAddress() gin.HandlerFunc {
 				return
 			}
 		}
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-		if err := database.DB.Where("user_id = ?", uid).Delete(&models.Address{}).Error; err != nil {
+
+		if err := database.DeleteAddressesGORM(uid); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

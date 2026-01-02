@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/hmailyan/go_ecommerce/database"
 	"github.com/hmailyan/go_ecommerce/models"
 )
@@ -17,15 +16,12 @@ import (
 // - limit: if >0, limits the number of returned documents
 func SearchProduct() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-		var productList []models.Product
-		if err := database.DB.Find(&productList).Error; err != nil {
+		products, err := database.GetAllProducts()
+		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve products"})
 			return
 		}
-		c.IndentedJSON(http.StatusOK, productList)
+		c.IndentedJSON(http.StatusOK, products)
 	}
 }
 
@@ -43,17 +39,12 @@ func SearchProductByQuery() gin.HandlerFunc {
 			return
 		}
 
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-
-		var searchProducts []models.Product
-		like := "%" + queryParams + "%"
-		if err := database.DB.Where("product_name ILIKE ?", like).Find(&searchProducts).Error; err != nil {
+		products, err := database.SearchProductsByName(queryParams)
+		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
 			return
 		}
-		c.IndentedJSON(http.StatusOK, searchProducts)
+		c.IndentedJSON(http.StatusOK, products)
 	}
 
 }
@@ -67,20 +58,11 @@ func ProductViewerAdmin() gin.HandlerFunc {
 			return
 		}
 
-		// Ensure DB is initialized
-		if database.DB == nil {
-			database.SetupGORM()
-		}
-
-		if products.ID == "" {
-			products.ID = uuid.NewString()
-		}
-
-		if err := database.DB.Create(&products).Error; err != nil {
+		if err := database.CreateProduct(&products); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Product was not inserted"})
 			return
 		}
-		c.JSON(http.StatusOK, "Successfully added")
+		c.JSON(http.StatusOK, gin.H{"message": "Successfully added", "product": products})
 	}
 
 }
