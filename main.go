@@ -18,7 +18,10 @@ func main() {
 		port = "8000"
 	}
 
-	app := controllers.NewApplication(database.ProductData(database.Client, "Products"), database.UserData(database.Client, "Users"))
+	// Initialize Postgres + GORM
+	database.SetupGORM()
+
+	app := controllers.NewApplication()
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -26,10 +29,17 @@ func main() {
 	routes.UserRoutes(router)
 	router.Use(middleware.Authentication())
 
+	// Cart endpoints (require authentication)
 	router.GET("/addtocart", app.AddToCart())
 	router.GET("/removeitem", app.RemoveFromCart())
 	router.GET("/cartcheckout", app.BuyFromCart())
 	router.GET("/instantbuy", app.InstantBuy())
+
+	// Address endpoints (protected)
+	router.POST("/users/address", controllers.AddAddress())
+	router.PUT("/users/address/home", controllers.EditHomeAddress())
+	router.PUT("/users/address/work", controllers.EditWorkAddress())
+	router.DELETE("/users/address", controllers.DeleteAddress())
 
 	log.Fatal(router.Run(":" + port))
 }

@@ -2,20 +2,13 @@
 package controllers
 
 import (
-	"context"
 	"net/http"
-	"time"
-
-	"github.com/hmailyan/go_ecommerce/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/hmailyan/go_ecommerce/database"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/hmailyan/go_ecommerce/models"
 )
-
-var ProductCollection *mongo.Collection = database.ProductData(database.Client, "products")
 
 // SearchProduct searches products by name (case-insensitive regex).
 // - ctx: request context
@@ -24,28 +17,15 @@ var ProductCollection *mongo.Collection = database.ProductData(database.Client, 
 // - limit: if >0, limits the number of returned documents
 func SearchProduct() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if database.DB == nil {
+			database.SetupGORM()
+		}
 		var productList []models.Product
-
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		defer cancel()
-
-		cursor, err := ProductCollection.Find(ctx, bson.D{})
-		if err != nil {
+		if err := database.DB.Find(&productList).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve products"})
+			return
 		}
-		err = cursor.All(ctx, &productList)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-		defer cursor.Close(ctx)
-
-		if err = cursor.Err(); err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "invalid"})
-		}
-		defer cancel()
-
 		c.IndentedJSON(http.StatusOK, productList)
-
 	}
 }
 
@@ -56,7 +36,6 @@ func SearchProduct() gin.HandlerFunc {
 // - findOpts: optional *options.FindOptions
 func SearchProductByQuery() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var searchProducts []models.Product
 		queryParams := c.Query("name")
 
 		if queryParams == "" {
@@ -64,28 +43,16 @@ func SearchProductByQuery() gin.HandlerFunc {
 			return
 		}
 
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		defer cancel()
+		if database.DB == nil {
+			database.SetupGORM()
+		}
 
-		searchQueryDB, err := ProductCollection.Find(ctx, bson.M{"product_name": bson.M{"$regex": queryParams}})
-		if err != nil {
+		var searchProducts []models.Product
+		like := "%" + queryParams + "%"
+		if err := database.DB.Where("product_name ILIKE ?", like).Find(&searchProducts).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
 			return
 		}
-
-		err = searchQueryDB.All(ctx, &searchProducts)
-		if err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
-			return
-		}
-		defer searchQueryDB.Close(ctx)
-
-		if err = searchQueryDB.Err(); err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while searching for products"})
-			return
-		}
-		defer cancel()
-
 		c.IndentedJSON(http.StatusOK, searchProducts)
 	}
 
@@ -93,21 +60,26 @@ func SearchProductByQuery() gin.HandlerFunc {
 
 func ProductViewerAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		var products models.Product
-		defer cancel()
 
 		if err := c.BindJSON(&products); err != nil {
 			c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
 			return
 		}
-		products.Product_ID = primitive.NewObjectID()
-		_, anyerr := ProductCollection.InsertOne(ctx, products)
-		if anyerr != nil {
+
+		// Ensure DB is initialized
+		if database.DB == nil {
+			database.SetupGORM()
+		}
+
+		if products.ID == "" {
+			products.ID = uuid.NewString()
+		}
+
+		if err := database.DB.Create(&products).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Product was not inserted"})
 			return
 		}
-		defer cancel()
 		c.JSON(http.StatusOK, "Successfully added")
 	}
 
