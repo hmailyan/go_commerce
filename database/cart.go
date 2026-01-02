@@ -28,7 +28,7 @@ var (
 
 // AddToCart adds a product to the user's cart.
 func AddProductToCart(ctx context.Context, prodCollection, userCollection *mongo.Collection, productID primitive.ObjectID, userID string) error {
-	searchFromDb, err := prodCollection.FindOne(ctx, bson.M{"_id": productID})
+	searchFromDb, err := prodCollection.Find(ctx, bson.M{"_id": productID})
 	if err != nil {
 		return ErrCantFindProduct
 	}

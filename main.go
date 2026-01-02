@@ -1,4 +1,4 @@
-package gocommerce
+package main
 
 import (
 	"log"

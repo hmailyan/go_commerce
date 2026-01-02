@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"go_commerce/models"
+	"github.com/hmailyan/go_ecommerce/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hmailyan/go_ecommerce/database"

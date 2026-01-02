@@ -3,23 +3,53 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// maskURI hides credentials from logs (e.g. mongodb://user:pass@host -> mongodb://***@host)
+func maskURI(uri string) string {
+	if idx := strings.Index(uri, "@"); idx != -1 {
+		return "mongodb://***@" + uri[idx+1:]
+	}
+	return uri
+}
+
 func DBSetup() *mongo.Client {
+	// Determine MongoDB URI from environment or docker-compose credentials
+	uri := os.Getenv("MONGO_URI")
+	if uri == "" {
+		user := os.Getenv("MONGO_INITDB_ROOT_USERNAME")
+		pass := os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
+		host := os.Getenv("MONGO_HOST")
+		if host == "" {
+			host = "localhost"
+		}
+		port := os.Getenv("MONGO_PORT")
+		if port == "" {
+			port = "27017"
+		}
+		if user != "" && pass != "" {
+			uri = fmt.Sprintf("mongodb://%s:%s@%s:%s", user, pass, host, port)
+		} else {
+			uri = fmt.Sprintf("mongodb://%s:%s", host, port)
+		}
+	}
+
 	// Initialize MongoDB client
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 
 	if err != nil {
 		panic(err)
 	}
 
-	ctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
-
-	defer cancle()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	err = client.Connect(ctx)
 	if err != nil {
@@ -31,7 +61,7 @@ func DBSetup() *mongo.Client {
 		panic(err)
 	}
 
-	fmt.Println("Connected to MongoDB!")
+	log.Printf("Connected to MongoDB at %s", maskURI(uri))
 	return client
 }
 

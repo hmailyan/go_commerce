@@ -49,7 +49,7 @@ func SignUp() gin.HandlerFunc {
 		count, err := UserCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 
 		if err != nil {
-			log.Panic(err, "error occurred while checking for the email")
+			log.Printf("error occurred while checking for the email: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while checking for the email"})
 			return
 		}
@@ -62,7 +62,7 @@ func SignUp() gin.HandlerFunc {
 		count, err = UserCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 
 		if err != nil {
-			log.Panic(err, "error occurred while checking for the phone number")
+			log.Printf("error occurred while checking for the phone number: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while checking for the phone number"})
 			return
 		}
@@ -88,7 +88,7 @@ func SignUp() gin.HandlerFunc {
 
 		_, insertErr := UserCollection.InsertOne(ctx, user)
 		if insertErr != nil {
-			log.Panic(insertErr, "user item was not created")
+			log.Printf("user item was not created: %v", insertErr)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user item was not created"})
 			return
 		}

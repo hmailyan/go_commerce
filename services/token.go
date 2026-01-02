@@ -111,7 +111,7 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 	defer cancel()
 
 	if err != nil {
-		log.Panic(err)
+		log.Printf("failed to update tokens: %v", err)
 		return
 	}
 
