@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hmailyan/go_ecommerce/database"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -92,15 +93,22 @@ func SearchProductByQuery() gin.HandlerFunc {
 
 func ProductViewerAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// var products models.Product
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var products models.Product
+		defer cancel()
 
-		// var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-		// defer cancel()
-		// if err := c.BindJSON(&products); err != nil {
-		// 	c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
-		// 	return
-		// }
-		c.JSON(http.StatusOK, "Successfully")
+		if err := c.BindJSON(&products); err != nil {
+			c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			return
+		}
+		products.Product_ID = primitive.NewObjectID()
+		_, anyerr := ProductCollection.InsertOne(ctx, products)
+		if anyerr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Product was not inserted"})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK, "Successfully added")
 	}
 
 }

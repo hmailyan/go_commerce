@@ -58,6 +58,10 @@ func DBSetup() *mongo.Client {
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
+		// Provide a clearer message when authentication is required or fails
+		if strings.Contains(err.Error(), "requires authentication") || strings.Contains(err.Error(), "Authentication failed") {
+			log.Fatalf("MongoDB connection failed: %v. Authentication is required. Set MONGO_URI (e.g. mongodb://user:pass@host:port) or set MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD and MONGO_HOST/MONGO_PORT environment variables and restart the app.", err)
+		}
 		panic(err)
 	}
 

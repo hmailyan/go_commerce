@@ -17,3 +17,19 @@ services:
       ME_CONFIG_MONGO_INITDB_ROOT_USERNAME: development  # Fixed the environment variable key
       ME_MONGO_INITDB_ROOT_USERNAME: development
       ME_CONFIG_MONGODB_URL: mongodb://development:development@mongo:27017/
+
+  app:
+    build: .
+    depends_on:
+      - mongo
+    ports:
+      - "8000:8000"
+    environment:
+      # Use a single URI to ensure correct auth when connecting from inside Docker
+      - MONGO_URI=mongodb://development:development@mongo:27017
+      - MONGO_INITDB_ROOT_USERNAME=development
+      - MONGO_INITDB_ROOT_PASSWORD=development
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - PORT=8000
+    restart: on-failure
