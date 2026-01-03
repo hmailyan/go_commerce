@@ -9,9 +9,15 @@ import (
 	"github.com/hmailyan/go_ecommerce/database"
 	"github.com/hmailyan/go_ecommerce/middleware"
 	"github.com/hmailyan/go_ecommerce/routes"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, using system env")
+	}
+
 	port := os.Getenv("PORT")
 
 	if port == "" {
