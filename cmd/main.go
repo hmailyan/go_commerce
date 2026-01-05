@@ -3,49 +3,34 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hmailyan/go_ecommerce/controllers"
-	"github.com/hmailyan/go_ecommerce/database"
-	"github.com/hmailyan/go_ecommerce/middleware"
-	"github.com/hmailyan/go_ecommerce/routes"
-	"github.com/joho/godotenv"
+	"github.com/hmailyan/go_ecommerce/internal/app"
+	"github.com/hmailyan/go_ecommerce/internal/shared/database"
 )
 
 func main() {
-	err := godotenv.Load()
+	db, err := database.New(database.Config{
+		DSN:             os.Getenv("DATABASE_DSN"),
+		MaxOpenConns:    25,
+		MaxIdleConns:    10,
+		ConnMaxLifetime: time.Hour,
+	})
 	if err != nil {
-		log.Println("No .env file found, using system env")
+		log.Fatalf("DB init failed: %v", err)
 	}
 
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		port = "8000"
+	if os.Getenv("DB_AUTOMIGRATE") == "true" {
+		database.AutoMigrate(db)
 	}
 
-	// Initialize Postgres + GORM
-	database.SetupGORM()
+	r := app.BuildRouter(db)
 
-	app := controllers.NewApplication()
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
-	router := gin.New()
-	router.Use(gin.Logger())
-
-	routes.UserRoutes(router)
-	router.Use(middleware.Authentication())
-
-	// Cart endpoints (require authentication)
-	router.GET("/addtocart", app.AddToCart())
-	router.GET("/removeitem", app.RemoveFromCart())
-	router.GET("/cartcheckout", app.BuyFromCart())
-	router.GET("/instantbuy", app.InstantBuy())
-
-	// Address endpoints (protected)
-	router.POST("/users/address", controllers.AddAddress())
-	router.PUT("/users/address/home", controllers.EditHomeAddress())
-	router.PUT("/users/address/work", controllers.EditWorkAddress())
-	router.DELETE("/users/address", controllers.DeleteAddress())
-
-	log.Fatal(router.Run(":" + port))
+	log.Println("🚀 API running on :8080")
+	r.Run(":8080")
 }
