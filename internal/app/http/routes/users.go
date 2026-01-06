@@ -2,11 +2,14 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/hmailyan/go_ecommerce/internal/shared/middleware"
 )
 
 func RegisterUserRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	users := rg.Group("/users")
 
 	users.POST("/signup", deps.UserHandler.SignUp())
-	users.GET("/me", deps.AuthMiddleware, deps.UserHandler.Me()) // add middleware for authentication
+	users.GET("/verify", deps.UserHandler.VerifyEmail())
+	users.GET("/login", deps.UserHandler.Login())
+	users.GET("/me", middleware.Auth(), deps.UserHandler.Me()) // add middleware for authentication
 }

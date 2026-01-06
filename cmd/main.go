@@ -8,9 +8,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hmailyan/go_ecommerce/internal/app"
 	"github.com/hmailyan/go_ecommerce/internal/shared/database"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, using system env")
+	}
+
 	db, err := database.New(database.Config{
 		DSN:             os.Getenv("DATABASE_DSN"),
 		MaxOpenConns:    25,

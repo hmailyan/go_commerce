@@ -2,67 +2,94 @@ package users
 
 import (
 	"context"
+	"log"
 )
 
 type PasswordHasher interface {
-	GenerateUserTokens(password string) (string, error)
+	HashPassword(password string) (string, error)
 }
 
 type TokenGenerator interface {
-	Generate(userID string) (string, error)
+	GenerateUserTokens(userID string) (string, error)
 	ValidateToken(signedToken string) (string, error)
+	GenerateRandomToken() (string, error)
+}
+
+type Mailer interface {
+	SendVerificationEmail(toEmail, verifyToken string) error
 }
 
 type Service struct {
 	repo          Repository
 	hasher        PasswordHasher
 	generateToken TokenGenerator
+	mailer        Mailer
 }
 
-func NewService(r Repository, h PasswordHasher, g TokenGenerator) *Service {
+func NewService(r Repository, h PasswordHasher, g TokenGenerator, m Mailer) *Service {
 	return &Service{
 		repo:          r,
 		hasher:        h,
 		generateToken: g,
+		mailer:        m,
 	}
 }
 
-func (s *Service) SignUp(ctx context.Context, req SignUpRequest) (*SignUpOutput, error) {
+func (s *Service) SignUp(ctx context.Context, req SignUpRequest) error {
 	exists, err := s.repo.ExistsByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if exists {
-		return nil, ErrEmailAlreadyExists
+		return ErrEmailAlreadyExists
 	}
 
-	hash, err := s.hasher.GenerateUserTokens(req.Password)
+	hash, err := s.hasher.HashPassword(req.Password)
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	VerificationToken, err := s.generateToken.GenerateRandomToken()
+	if err != nil {
+		return err
 	}
 
 	user := &User{
-		Email:     req.Email,
-		Password:  hash,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
+		Email:             req.Email,
+		Password:          hash,
+		FirstName:         req.FirstName,
+		LastName:          req.LastName,
+		VerificationToken: VerificationToken,
 	}
 
 	err = s.repo.Create(ctx, user)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	token, err := s.generateToken.Generate(user.ID.String())
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		err := s.mailer.SendVerificationEmail(
+			user.Email,
+			VerificationToken,
+		)
+		if err != nil {
+			// log error, DO NOT panic
+			log.Printf("failed to send verification email: %v", err)
+		}
+	}()
 
-	return &SignUpOutput{
-		ID:    user.ID.String(),
-		Token: token,
-	}, nil
+	return nil
 }
+
+func (s *Service) VerifyEmail(ctx context.Context, token string) error {
+	err := s.repo.VerifyEmail(ctx, token)
+	if err != nil {
+		return ErrInvalidVerificationToken
+	}
+
+	return nil
+}
+
 func (s *Service) Me(ctx context.Context, token string) (user *User, error error) {
 	// For simplicity, let's assume we have a method to get user by ID
 	uid, err := s.generateToken.ValidateToken(token)

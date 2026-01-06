@@ -2,6 +2,8 @@ package users
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -27,6 +29,17 @@ func (r *Repository) ExistsByEmail(ctx context.Context, email string) (bool, err
 
 func (r *Repository) Create(ctx context.Context, req *User) error {
 	return r.db.Create(req).Error
+}
+
+func (r *Repository) VerifyEmail(ctx context.Context, token string) error {
+	err := r.db.Model(&User{}).
+		Where("verification_token = ?", token).
+		Updates(map[string]interface{}{"verification_at": time.Now(), "verification_token": ""}).Error
+	if err != nil {
+		fmt.Printf(err.Error())
+		return err
+	}
+	return nil
 }
 
 func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {

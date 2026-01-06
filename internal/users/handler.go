@@ -1,6 +1,7 @@
 package users
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,7 @@ func (h *Handler) SignUp() gin.HandlerFunc {
 			return
 		}
 
-		out, err := h.service.SignUp(c.Request.Context(), req)
+		err := h.service.SignUp(c.Request.Context(), req)
 
 		if err != nil {
 			if err == ErrEmailAlreadyExists {
@@ -35,8 +36,35 @@ func (h *Handler) SignUp() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, out)
+		c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 
+	}
+}
+
+func (h *Handler) VerifyEmail() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Query("token")
+
+		if token == "" {
+			fmt.Printf("test")
+			fmt.Printf(token)
+			c.JSON(http.StatusBadRequest, gin.H{"error": ErrInvalidVerificationToken})
+			return
+		}
+
+		err := h.service.VerifyEmail(c.Request.Context(), token)
+		if err != nil {
+			fmt.Printf("test2")
+
+			if err == ErrInvalidVerificationToken {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "email verified successfully"})
 	}
 }
 

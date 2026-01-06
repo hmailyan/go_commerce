@@ -1,10 +1,14 @@
 package app
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/hmailyan/go_ecommerce/internal/app/http/routes"
+	"github.com/hmailyan/go_ecommerce/internal/shared/mailer"
 	"github.com/hmailyan/go_ecommerce/internal/shared/utils"
+
 	"github.com/hmailyan/go_ecommerce/internal/users"
 	"gorm.io/gorm"
 )
@@ -17,7 +21,15 @@ func BuildRouter(db *gorm.DB) *gin.Engine {
 	hasher := utils.NewPasswordUtils()
 	tokenGen := utils.NewTokenUtils()
 
-	userService := users.NewService(userRepo, hasher, tokenGen)
+	smtpMailer := mailer.NewSMTPMailer(mailer.SMTPConfig{
+		Host:     os.Getenv("SMTP_HOST"),
+		Port:     os.Getenv("SMTP_PORT"),
+		Username: os.Getenv("SMTP_USERNAME"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     os.Getenv("SMTP_FROM"),
+	})
+
+	userService := users.NewService(userRepo, hasher, tokenGen, smtpMailer)
 	userHandler := users.NewHandler(userService)
 
 	deps := &routes.Dependencies{

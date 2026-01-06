@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"os"
 	"time"
@@ -65,20 +67,10 @@ func (t TokenUtils) ValidateToken(signedToken string) (Uid string, msg error) {
 	return claims.Uid, msg
 }
 
-func (t TokenUtils) UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
-
-	// if database.DB == nil {
-	// 	database.SetupGORM()
-	// }
-
-	// updates := map[string]interface{}{
-	// 	"token":        signedToken,
-	// 	"refreshtoken": signedRefreshToken,
-	// 	"updated_at":   time.Now(),
-	// }
-
-	// if err := database.DB.Model(&models.User{}).Where("id = ?", userId).Updates(updates).Error; err != nil {
-	// 	log.Printf("failed to update tokens: %v", err)
-	// }
-
+func (t TokenUtils) GenerateRandomToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
