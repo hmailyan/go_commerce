@@ -98,6 +98,9 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (userRes *UserRes
 		fmt.Printf("1")
 		return nil, "", err
 	}
+	if user.VerificationAt == nil {
+		return nil, "", ErrVerificationRequired
+	}
 	err = s.hasher.VerifyPassword(user.Password, req.Password)
 	if err != nil {
 		fmt.Printf("2")

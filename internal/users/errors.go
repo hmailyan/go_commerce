@@ -8,4 +8,5 @@ var (
 	ErrInvalidToken             = errors.New("invalid token")
 	ErrInvalidVerificationToken = errors.New("invalid verification token")
 	ErrInvalidLogin             = errors.New("Email or Password are incorrect")
+	ErrVerificationRequired     = errors.New("User not verifyed")
 )
