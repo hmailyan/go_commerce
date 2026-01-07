@@ -35,7 +35,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*Product, error) {
 func (r *Repository) SearchByQuery(ctx context.Context, query string) ([]*Product, error) {
 	var products []*Product
 	like := "%" + query + "%"
-	if err := r.db.WithContext(ctx).Where("product_name LIKE ?", like).Find(&products).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("name ILIKE ?", like).Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil

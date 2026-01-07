@@ -1,18 +1,21 @@
 package products
 
-import "context"
+import (
+	"context"
+)
 
 type Service struct {
-	repo *Repository
+	repo Repository
 }
 
-func NewService(r *Repository) *Service {
+func NewService(r Repository) *Service {
 	return &Service{
 		repo: r,
 	}
 }
 
-func (s *Service) Create(ctx context.Context, req *CreateRequest) (*Product, error) {
+func (s *Service) Create(ctx context.Context, req CreateRequest) (*Product, error) {
+
 	product := &Product{
 		Name:  req.Name,
 		Price: req.Price,

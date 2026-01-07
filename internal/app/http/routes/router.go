@@ -8,7 +8,7 @@ func RegisterRoutes(r *gin.Engine, deps *Dependencies) {
 	api := r.Group("/api/v1")
 
 	RegisterUserRoutes(api, deps)
-	// RegisterAuthRoutes(api, deps)
+	RegisterProductRoutes(api, deps)
 
 	// routes.RegisterOrderRoutes(api)
 }

@@ -23,7 +23,7 @@ func (h *Handler) Create() gin.HandlerFunc {
 			return
 		}
 
-		out, err := h.service.Create(c, &req)
+		out, err := h.service.Create(c.Request.Context(), req)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
