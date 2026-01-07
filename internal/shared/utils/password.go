@@ -10,7 +10,6 @@ func NewPasswordUtils() PasswordUtils {
 	return PasswordUtils{}
 }
 func (p PasswordUtils) HashPassword(password string) (string, error) {
-	// implementation for hashing password
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -18,15 +17,10 @@ func (p PasswordUtils) HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func (p PasswordUtils) VerifyPassword(password, givenPassword string) (bool, string) {
-	// implementation for checking password hash
-	err := bcrypt.CompareHashAndPassword([]byte(givenPassword), []byte(password))
-	valid := true
-	msg := ""
-
+func (p PasswordUtils) VerifyPassword(password, givenPassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(givenPassword))
 	if err != nil {
-		msg = "login or password is incorrect"
-		valid = false
+		return err
 	}
-	return valid, msg
+	return nil
 }

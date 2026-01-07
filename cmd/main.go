@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hmailyan/go_ecommerce/internal/app"
 	"github.com/hmailyan/go_ecommerce/internal/shared/database"
+	"github.com/hmailyan/go_ecommerce/internal/shared/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -32,6 +33,8 @@ func main() {
 	}
 
 	r := app.BuildRouter(db)
+
+	r.Use(middleware.TimeoutMiddleware(5 * time.Second))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})

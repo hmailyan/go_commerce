@@ -2,11 +2,13 @@ package users
 
 import (
 	"context"
+	"fmt"
 	"log"
 )
 
 type PasswordHasher interface {
 	HashPassword(password string) (string, error)
+	VerifyPassword(password string, givenPassword string) error
 }
 
 type TokenGenerator interface {
@@ -88,6 +90,30 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	return nil
+}
+
+func (s *Service) Login(ctx context.Context, req LoginRequest) (userRes *UserResponse, token string, error error) {
+	user, err := s.repo.FindByEmail(ctx, req.Email)
+	if err != nil {
+		fmt.Printf("1")
+		return nil, "", err
+	}
+	err = s.hasher.VerifyPassword(user.Password, req.Password)
+	if err != nil {
+		fmt.Printf("2")
+		return nil, "", err
+	}
+
+	token, err = s.generateToken.GenerateUserTokens(user.ID.String())
+
+	if err != nil {
+		fmt.Printf("3")
+
+		return nil, "", err
+	}
+
+	return ToUserResponse(user), token, nil
+
 }
 
 func (s *Service) Me(ctx context.Context, token string) (user *User, error error) {

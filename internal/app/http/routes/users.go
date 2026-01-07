@@ -10,6 +10,6 @@ func RegisterUserRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 
 	users.POST("/signup", deps.UserHandler.SignUp())
 	users.GET("/verify", deps.UserHandler.VerifyEmail())
-	users.GET("/login", deps.UserHandler.Login())
+	users.POST("/login", deps.UserHandler.Login())
 	users.GET("/me", middleware.Auth(), deps.UserHandler.Me()) // add middleware for authentication
 }

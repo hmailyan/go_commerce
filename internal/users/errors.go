@@ -7,4 +7,5 @@ var (
 	ErrCantFindUser             = errors.New("Cant find user")
 	ErrInvalidToken             = errors.New("invalid token")
 	ErrInvalidVerificationToken = errors.New("invalid verification token")
+	ErrInvalidLogin             = errors.New("Email or Password are incorrect")
 )

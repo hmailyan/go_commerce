@@ -1,7 +1,6 @@
 package users
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -41,20 +40,39 @@ func (h *Handler) SignUp() gin.HandlerFunc {
 	}
 }
 
+func (h *Handler) Login() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req LoginRequest
+
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		user, token, err := h.service.Login(c.Request.Context(), req)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"user":  user,
+			"token": token})
+
+	}
+}
+
 func (h *Handler) VerifyEmail() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")
 
 		if token == "" {
-			fmt.Printf("test")
-			fmt.Printf(token)
 			c.JSON(http.StatusBadRequest, gin.H{"error": ErrInvalidVerificationToken})
 			return
 		}
 
 		err := h.service.VerifyEmail(c.Request.Context(), token)
 		if err != nil {
-			fmt.Printf("test2")
 
 			if err == ErrInvalidVerificationToken {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

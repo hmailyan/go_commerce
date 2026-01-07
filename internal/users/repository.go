@@ -2,7 +2,6 @@ package users
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -36,12 +35,21 @@ func (r *Repository) VerifyEmail(ctx context.Context, token string) error {
 		Where("verification_token = ?", token).
 		Updates(map[string]interface{}{"verification_at": time.Now(), "verification_token": ""}).Error
 	if err != nil {
-		fmt.Printf(err.Error())
 		return err
 	}
 	return nil
 }
 
+func (r *Repository) FindByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	err := r.db.WithContext(ctx).First(&user, "email = ?", email).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// Need to change
 func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {
 	var user User
 	err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error
