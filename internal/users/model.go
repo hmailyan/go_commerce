@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hmailyan/go_ecommerce/internal/carts"
 )
 
 type User struct {
@@ -15,6 +16,8 @@ type User struct {
 	Phone             string     `gorm:"size:30;;not null" json:"phone" validate:"required"`
 	VerificationAt    *time.Time `gorm:"default:null"; json:"verification_at"`
 	VerificationToken string     `json:"verification_token"`
+
+	Cart carts.Cart `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 
 	// Token        string    `json:"token"`
 	// Refreshtoken string    `json:"refresh_token"`

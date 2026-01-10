@@ -119,14 +119,10 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (userRes *UserRes
 
 }
 
-func (s *Service) Me(ctx context.Context, token string) (userRes *UserResponse, error error) {
+func (s *Service) Me(ctx context.Context, userId string) (userRes *UserResponse, error error) {
 	var user *User
 	// For simplicity, let's assume we have a method to get user by ID
-	uid, err := s.generateToken.ValidateToken(token)
-	if err != nil {
-		return nil, err
-	}
-	user, err = s.repo.FindByID(ctx, uid)
+	user, err := s.repo.FindByID(ctx, userId)
 	if err != nil {
 		return nil, ErrCantFindUser
 	}

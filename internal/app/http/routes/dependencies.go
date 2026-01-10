@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/hmailyan/go_ecommerce/internal/carts"
 	"github.com/hmailyan/go_ecommerce/internal/products"
 	"github.com/hmailyan/go_ecommerce/internal/users"
 )
@@ -8,5 +9,5 @@ import (
 type Dependencies struct {
 	UserHandler    *users.Handler
 	ProductHandler *products.Handler
-	// OrderHandler   *orders.Handler
+	CartHandler    *carts.Handler
 }

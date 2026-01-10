@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hmailyan/go_ecommerce/internal/app"
+	"github.com/hmailyan/go_ecommerce/internal/app/http/middleware"
 	"github.com/hmailyan/go_ecommerce/internal/shared/database"
-	"github.com/hmailyan/go_ecommerce/internal/shared/middleware"
 	"github.com/joho/godotenv"
 )
 

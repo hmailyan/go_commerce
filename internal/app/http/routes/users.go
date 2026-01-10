@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/hmailyan/go_ecommerce/internal/shared/middleware"
+	"github.com/hmailyan/go_ecommerce/internal/app/http/middleware"
 )
 
 func RegisterUserRoutes(rg *gin.RouterGroup, deps *Dependencies) {

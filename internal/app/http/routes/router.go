@@ -9,6 +9,7 @@ func RegisterRoutes(r *gin.Engine, deps *Dependencies) {
 
 	RegisterUserRoutes(api, deps)
 	RegisterProductRoutes(api, deps)
+	RegisterCartRoutes(api, deps)
 
 	// routes.RegisterOrderRoutes(api)
 }

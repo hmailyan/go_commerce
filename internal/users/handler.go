@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hmailyan/go_ecommerce/internal/app/http/context"
 )
 
 type Handler struct {
@@ -88,14 +89,15 @@ func (h *Handler) VerifyEmail() gin.HandlerFunc {
 
 func (h *Handler) Me() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ClientToken := c.GetHeader("Authorization")
 
-		if ClientToken == "" {
+		userId, ok := context.GetUserID(c)
+
+		if !ok {
 			c.JSON(http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
 
-		out, err := h.service.Me(c.Request.Context(), ClientToken)
+		out, err := h.service.Me(c.Request.Context(), userId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
