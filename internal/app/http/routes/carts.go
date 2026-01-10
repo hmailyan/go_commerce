@@ -7,7 +7,8 @@ import (
 
 func RegisterCartRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	cartsGroup := rg.Group("/cart")
-
-	cartsGroup.POST("/add", middleware.Auth(), deps.CartHandler.AddItem())
+	cartsGroup.Use(middleware.Auth())
+	cartsGroup.POST("/add", deps.CartHandler.AddItem())
+	cartsGroup.GET("/", deps.CartHandler.GetCart())
 
 }

@@ -45,3 +45,18 @@ func (s *Service) AddItem(ctx context.Context, req AddItemRequest, userId string
 	return s.repo.AddItem(ctx, userCart.ID, pid, req.Quantity)
 
 }
+
+func (s *Service) GetCart(ctx context.Context, userId string) (*Cart, error) {
+	uid, err := uuid.Parse(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	cart, err := s.repo.GetOrCreateUserCart(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return cart, nil
+
+}

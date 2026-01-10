@@ -18,7 +18,7 @@ func NewRepository(db *gorm.DB) Repository {
 func (r *Repository) GetOrCreateUserCart(ctx context.Context, userId uuid.UUID) (*Cart, error) {
 	var cart Cart
 
-	res := r.db.WithContext(ctx).Where("user_id = ?", userId).Limit(1).Find(&cart)
+	res := r.db.WithContext(ctx).Preload("Items.Product").Where("user_id = ?", userId).Limit(1).Find(&cart)
 	if res.Error != nil {
 		return nil, res.Error
 	}

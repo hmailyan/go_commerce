@@ -37,3 +37,20 @@ func (h *Handler) AddItem() gin.HandlerFunc {
 		c.JSON(http.StatusAccepted, gin.H{"message": "Product added to cart"})
 	}
 }
+
+func (h *Handler) GetCart() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userId, ok := context.GetUserID(c)
+
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Interval Server Error"})
+		}
+
+		cart, err := h.service.GetCart(c, userId)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		}
+
+		c.JSON(http.StatusOK, gin.H{"cart": ToCartResponse(cart)})
+	}
+}
