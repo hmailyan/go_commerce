@@ -54,3 +54,30 @@ func (h *Handler) GetCart() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"cart": ToCartResponse(cart)})
 	}
 }
+
+func (h *Handler) RemoveItem() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req RemoveItemRequest
+
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		userId, ok := context.GetUserID(c)
+
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Interval Server Error"})
+			return
+		}
+
+		err := h.service.RemoveItem(c, req, userId)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusAccepted, gin.H{"message": "Item successfully modifyed"})
+
+	}
+}

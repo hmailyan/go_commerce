@@ -1,6 +1,12 @@
 package carts
 
+import "github.com/google/uuid"
+
 type AddItemRequest struct {
+	ProductID string `json:"product_id" binding:"required"`
+	Quantity  int    `json:"quantity" binding:"required"`
+}
+type RemoveItemRequest struct {
 	ProductID string `json:"product_id" binding:"required"`
 	Quantity  int    `json:"quantity" binding:"required"`
 }
@@ -11,6 +17,7 @@ type CartResponse struct {
 }
 
 type CartItemResponse struct {
+	ID          uuid.UUID
 	ProductName string
 	Price       float64
 	Image       string
@@ -34,6 +41,7 @@ func ToCartResponse(c *Cart) *CartResponse {
 
 func ToCartItemResponse(ci CartItem) CartItemResponse {
 	return CartItemResponse{
+		ID:          ci.ID,
 		ProductName: ci.Product.Name,
 		Price:       float64(ci.Product.Price),
 		Image:       ci.Product.Image,
