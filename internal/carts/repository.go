@@ -2,7 +2,6 @@ package carts
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -19,31 +18,36 @@ func NewRepository(db *gorm.DB) Repository {
 func (r *Repository) GetOrCreateUserCart(ctx context.Context, userId uuid.UUID) (*Cart, error) {
 	var cart Cart
 
-	err := r.db.WithContext(ctx).Where("user_id = ?", userId).First(&cart).Error
-	if err == nil {
-		return &cart, nil
+	res := r.db.WithContext(ctx).Where("user_id = ?", userId).Limit(1).Find(&cart)
+	if res.Error != nil {
+		return nil, res.Error
 	}
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	if res.RowsAffected == 0 {
 
 		cart = Cart{UserID: userId}
 		if err := r.db.WithContext(ctx).Create(&cart).Error; err != nil {
 			return nil, err
 		}
-		return &cart, nil
 	}
 
-	return nil, err
+	return &cart, nil
 
 }
 
 func (r *Repository) GetItem(ctx context.Context, cartID uuid.UUID, productID uuid.UUID) (*CartItem, error) {
 	var item CartItem
-	err := r.db.WithContext(ctx).
-		Where("cart_id = ? AND product_id = ?", cartID, productID).
-		First(&item).Error
+	res := r.db.WithContext(ctx).
+		Where("cart_id = ? AND product_id = ?", cartID, productID).Limit(1).Find(&item)
 
-	return &item, err
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	if res.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &item, nil
 }
 
 func (r *Repository) UpdateQty(ctx context.Context, itemID uuid.UUID, qty int) error {
@@ -60,7 +64,7 @@ func (r *Repository) AddItem(ctx context.Context, cartID uuid.UUID, pID uuid.UUI
 		Quantity:  qty,
 	}
 
-	err := r.db.WithContext(ctx).Create(item).Error
+	err := r.db.WithContext(ctx).Create(&item).Error
 
 	return err
 
