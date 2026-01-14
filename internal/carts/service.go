@@ -65,7 +65,6 @@ func (s *Service) GetCart(ctx context.Context, userId string) (*Cart, error) {
 func (s *Service) RemoveItem(ctx context.Context, req RemoveItemRequest, userId string) error {
 	pid, err := uuid.Parse(req.ProductID)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -82,6 +81,10 @@ func (s *Service) RemoveItem(ctx context.Context, req RemoveItemRequest, userId 
 	item, err := s.repo.GetItem(ctx, cart.ID, pid)
 	if err != nil {
 		return err
+	}
+
+	if item == nil {
+		return ErrItemNotFound
 	}
 
 	if item.Quantity == req.Quantity {
@@ -104,4 +107,24 @@ func (s *Service) RemoveItem(ctx context.Context, req RemoveItemRequest, userId 
 
 	return nil
 
+}
+
+func (s *Service) Clear(ctx context.Context, userId string) error {
+	uid, err := uuid.Parse(userId)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	cart, err := s.repo.GetOrCreateUserCart(ctx, uid)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.ClearCart(ctx, cart.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -81,3 +81,23 @@ func (h *Handler) RemoveItem() gin.HandlerFunc {
 
 	}
 }
+
+func (h *Handler) Clear() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userId, ok := context.GetUserID(c)
+
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Interval Server Error"})
+			return
+		}
+
+		err := h.service.Clear(c, userId)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusAccepted, gin.H{"message": "Cart cleared successfully"})
+
+	}
+}

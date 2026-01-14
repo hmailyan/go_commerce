@@ -72,12 +72,11 @@ func (r *Repository) AddItem(ctx context.Context, cartID uuid.UUID, pID uuid.UUI
 
 func (r *Repository) RemoveItem(ctx context.Context, pid uuid.UUID, qty int, cartId uuid.UUID) error {
 	var item CartItem
-	err := r.db.WithContext(ctx).Where("cart_id = ? AND product_id = ?", cartId, pid).Delete(&item).Error
+	return r.db.WithContext(ctx).Where("cart_id = ? AND product_id = ?", cartId, pid).Delete(&item).Error
 
-	if err != nil {
-		return err
-	}
+}
 
-	return nil
-
+func (r *Repository) ClearCart(ctx context.Context, cartId uuid.UUID) error {
+	var item []CartItem
+	return r.db.WithContext(ctx).Where("cart_id = ?", cartId).Delete(item).Error
 }

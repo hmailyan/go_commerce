@@ -11,5 +11,6 @@ func RegisterCartRoutes(rg *gin.RouterGroup, deps *Dependencies) {
 	cartsGroup.POST("/add", deps.CartHandler.AddItem())
 	cartsGroup.GET("/", deps.CartHandler.GetCart())
 	cartsGroup.PUT("/remove", deps.CartHandler.RemoveItem())
+	cartsGroup.POST("/clear", deps.CartHandler.Clear())
 
 }
