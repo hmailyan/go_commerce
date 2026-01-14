@@ -1,419 +1,233 @@
 {
   "info": {
-    "name": "go_commerce API",
+    "name": "go_commerce API (complete)",
     "_postman_id": "",
-    "description": "Postman collection for go_commerce project - generated from source routes",
+    "description": "Postman collection for go_commerce project - covers /api/v1 users, products and cart endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8000" },
-    { "key": "token", "value": "" }
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "verification_token", "value": "" }
   ],
   "item": [
     {
-      "name": "Sign Up",
+      "name": "Users / Sign Up",
       "request": {
         "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"password\": \"password123\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"1234567890\"\n}"
+          "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"phone\": \"1234567890\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/users/signup",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "signup"]
-        }
+        "url": { "raw": "{{baseUrl}}/api/v1/users/signup", "host": ["{{baseUrl}}"], "path": ["api","v1","users","signup"] }
       },
-      "response": [
-        {
-          "name": "Signup created",
-          "originalRequest": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": { "mode": "raw" }
-          },
-          "status": "Created",
-          "code": 201,
-          "body": "{ \"message\": \"user created successfully\" }"
-        }
-      ],
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 201', function () {",
-              "    pm.response.to.have.status(201);",
-              "});",
-              "pm.test('Response contains message', function () {",
-              "    var json = pm.response.json();",
-              "    pm.expect(json).to.have.property('message');",
-              "});"
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Response has message', function () { var json = {}; try { json = pm.response.json(); } catch(e){}; pm.expect(json).to.have.property('message'); });"
             ]
           }
         }
       ]
     },
     {
-      "name": "Login",
+      "name": "Users / Verify Email",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/verify?token={{verification_token}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","v1","users","verify"],
+          "query": [{ "key": "token", "value": "{{verification_token}}" }]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Verified message', function () { var json = {}; try { json = pm.response.json(); } catch(e){}; pm.expect(json).to.have.property('message'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users / Login",
       "request": {
         "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/users/login",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "login"]
-        }
+        "url": { "raw": "{{baseUrl}}/api/v1/users/login", "host": ["{{baseUrl}}"], "path": ["api","v1","users","login"] }
       },
-      "response": [
-        {
-          "name": "Login success",
-          "originalRequest": { "method": "POST", "header": [] },
-          "status": "Found",
-          "code": 302,
-          "body": "{ \"email\": \"john.doe@example.com\", \"token\": \"<token>\" }"
-        }
-      ],
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 302', function () {",
-              "    pm.response.to.have.status(302);",
-              "});",
-              "var json = {};",
-              "try { json = pm.response.json(); } catch (e) {}",
-              "pm.test('If token exists, save it to collection', function () {",
-              "    if (json && json.token) {",
-              "        pm.collectionVariables.set('token', json.token);",
-              "        pm.expect(json).to.have.property('token');",
-              "    } else {",
-              "        pm.expect(pm.response.code).to.be.oneOf([302, 401, 500]);",
-              "    }",
-              "});"
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "var json = {}; try { json = pm.response.json(); } catch(e){};",
+              "pm.test('Save token and userId if present', function () { if (json && json.token) { pm.collectionVariables.set('token', json.token); } if (json && json.user && json.user.id) { pm.collectionVariables.set('userId', json.user.id); } pm.expect(json).to.have.property('token'); });"
             ]
           }
         }
       ]
     },
     {
-      "name": "Add Product (admin)",
+      "name": "Users / Me (authenticated)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/users/me", "host": ["{{baseUrl}}"], "path": ["api","v1","users","me"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "var json = {}; try { json = pm.response.json(); } catch(e){}; pm.test('Has id', function () { pm.expect(json).to.have.property('id'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products / Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sample Product\",\n  \"price\": 1999,\n  \"image\": \"https://example.com/image.jpg\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/products/", "host": ["{{baseUrl}}"], "path": ["api","v1","products",""] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "var json = {}; try { json = pm.response.json(); } catch(e){}; pm.test('Save product id', function () { if (json && json.id) { pm.collectionVariables.set('productId', json.id); } else if (json && json.ID) { pm.collectionVariables.set('productId', json.ID); } pm.expect(json).to.have.property('id'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products / List",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/v1/products/", "host": ["{{baseUrl}}"], "path": ["api","v1","products",""] }
+      },
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Response is array', function(){ var json = []; try { json = pm.response.json(); } catch(e){}; pm.expect(json).to.be.an('array'); });"] } }
+      ]
+    },
+    {
+      "name": "Products / Get by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","v1","products","{{productId}}"]
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Has id', function(){ var json = {}; try { json = pm.response.json(); } catch(e){}; pm.expect(json).to.have.property('id'); });"] } }
+      ]
+    },
+    {
+      "name": "Products / Search",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/products/search?name=phone",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","v1","products","search"],
+          "query": [{ "key": "name", "value": "phone" }]
+        }
+      },
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Array', function(){ var json = []; try { json = pm.response.json(); } catch(e){}; pm.expect(json).to.be.an('array'); });"] } }
+      ]
+    },
+    {
+      "name": "Cart / Add Item (auth)",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"product_name\": \"Sample Product\",\n  \"price\": 1999,\n  \"rating\": 5,\n  \"image\": \"https://example.com/image.jpg\"\n}"
+          "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 1\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/admin/addproduct",
-          "host": ["{{baseUrl}}"],
-          "path": ["admin", "addproduct"]
-        }
+        "url": { "raw": "{{baseUrl}}/api/v1/cart/add", "host": ["{{baseUrl}}"], "path": ["api","v1","cart","add"] }
       },
-      "response": [
-        {
-          "name": "Add product ok",
-          "originalRequest": { "method": "POST", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "\"Successfully\""
-        }
-      ],
       "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200,401]);",
-              "});",
-              "pm.test('Response is OK or unauthorized', function () {",
-              "    var ok = (pm.response.code === 200);",
-              "    var json = {};",
-              "    try { json = pm.response.json(); } catch (e) {}",
-              "    if (ok) { pm.expect(pm.response.text()).to.include('Successfully'); }",
-              "});"
-            ]
-          }
-        }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 202 or 401', function () { pm.expect(pm.response.code).to.be.oneOf([202,401]); });"] } }
       ]
     },
     {
-      "name": "Get All Products",
+      "name": "Cart / Get (auth)",
       "request": {
         "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/users/productview",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "productview"]
-        }
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/v1/cart/", "host": ["{{baseUrl}}"], "path": ["api","v1","cart",""] }
       },
-      "response": [
-        {
-          "name": "Products list",
-          "originalRequest": { "method": "GET", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "[ { \"_id\": \"60b8d6...\", \"product_name\": \"Sample Product\", \"price\": 1999 } ]"
-        }
-      ],
       "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Response is array', function () {",
-              "    var json = pm.response.json();",
-              "    pm.expect(json).to.be.an('array');",
-              "});"
-            ]
-          }
-        }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200 or 401', function () { pm.expect(pm.response.code).to.be.oneOf([200,401]); });", "pm.test('Has cart key when 200', function(){ if(pm.response.code===200){ var json={}; try{ json=pm.response.json(); }catch(e){}; pm.expect(json).to.have.property('cart'); } });"] } }
       ]
     },
     {
-      "name": "Search Products",
+      "name": "Cart / Remove Item (auth)",
       "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/users/search?name=phone",
-          "host": ["{{baseUrl}}"],
-          "path": ["users", "search"],
-          "query": [
-            { "key": "name", "value": "phone" }
-          ]
-        }
-      },
-      "response": [
-        {
-          "name": "Search results",
-          "originalRequest": { "method": "GET", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "[ { \"_id\": \"60b8d6...\", \"product_name\": \"Phone X\", \"price\": 49999 } ]"
-        }
-      ],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Response contains an array', function () {",
-              "    var json = pm.response.json();",
-              "    pm.expect(json).to.be.an('array');",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Add To Cart",
-      "request": {
-        "method": "GET",
+        "method": "PUT",
         "header": [
-          { "key": "token", "value": "{{token}}" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
-        "url": {
-          "raw": "{{baseUrl}}/addtocart?id=60b8d6f1f1f1f1f1f1f1f1f1&UserID=60b8d6f1f1f1f1f1f1f1f1f2",
-          "host": ["{{baseUrl}}"],
-          "path": ["addtocart"],
-          "query": [
-            { "key": "id", "value": "60b8d6f1f1f1f1f1f1f1f1f1" },
-            { "key": "UserID", "value": "60b8d6f1f1f1f1f1f1f1f1f2" }
-          ]
-        }
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 1\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/cart/remove", "host": ["{{baseUrl}}"], "path": ["api","v1","cart","remove"] }
       },
-      "response": [
-        {
-          "name": "Added to cart",
-          "originalRequest": { "method": "GET", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "{ \"message\": \"Product added to cart successfully\" }"
-        }
-      ],
       "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is OK or Unauthorized', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 400]);",
-              "});",
-              "var json = {};",
-              "try { json = pm.response.json(); } catch (e) {}",
-              "pm.test('Response has message or error', function () {",
-              "    if (json && json.message) pm.expect(json).to.have.property('message');",
-              "    if (json && json.error) pm.expect(json).to.have.property('error');",
-              "});"
-            ]
-          }
-        }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 202 or 400', function () { pm.expect(pm.response.code).to.be.oneOf([202,400,401]); });"] } }
       ]
     },
     {
-      "name": "Remove From Cart",
+      "name": "Cart / Clear (auth)",
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
-          { "key": "token", "value": "{{token}}" }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
         ],
-        "url": {
-          "raw": "{{baseUrl}}/removeitem?id=60b8d6f1f1f1f1f1f1f1f1f1&UserID=60b8d6f1f1f1f1f1f1f1f1f2",
-          "host": ["{{baseUrl}}"],
-          "path": ["removeitem"],
-          "query": [
-            { "key": "id", "value": "60b8d6f1f1f1f1f1f1f1f1f1" },
-            { "key": "UserID", "value": "60b8d6f1f1f1f1f1f1f1f1f2" }
-          ]
-        }
+        "url": { "raw": "{{baseUrl}}/api/v1/cart/clear", "host": ["{{baseUrl}}"], "path": ["api","v1","cart","clear"] }
       },
-      "response": [
-        {
-          "name": "Removed from cart",
-          "originalRequest": { "method": "GET", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "{ \"message\": \"Product removed from cart successfully\" }"
-        }
-      ],
       "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code OK or Unauthorized', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 400]);",
-              "});",
-              "var json = {};",
-              "try { json = pm.response.json(); } catch (e) {}",
-              "pm.test('Response contains either message or error', function () {",
-              "    if (json && json.message) pm.expect(json).to.have.property('message');",
-              "    if (json && json.error) pm.expect(json).to.have.property('error');",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Cart Checkout",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "token", "value": "{{token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/cartcheckout?UserID=60b8d6f1f1f1f1f1f1f1f1f2",
-          "host": ["{{baseUrl}}"],
-          "path": ["cartcheckout"],
-          "query": [
-            { "key": "UserID", "value": "60b8d6f1f1f1f1f1f1f1f1f2" }
-          ]
-        }
-      },
-      "response": [
-        {
-          "name": "Cart checkout",
-          "originalRequest": { "method": "GET", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "{ \"message\": \"Products bought from cart successfully\" }"
-        }
-      ],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status is OK or Unauthorized', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 400]);",
-              "});",
-              "var json = {};",
-              "try { json = pm.response.json(); } catch (e) {}",
-              "pm.test('Response contains message or error', function () {",
-              "    if (json && json.message) pm.expect(json).to.have.property('message');",
-              "    if (json && json.error) pm.expect(json).to.have.property('error');",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Instant Buy",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "token", "value": "{{token}}" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/instantbuy?id=60b8d6f1f1f1f1f1f1f1f1f1&UserID=60b8d6f1f1f1f1f1f1f1f1f2",
-          "host": ["{{baseUrl}}"],
-          "path": ["instantbuy"],
-          "query": [
-            { "key": "id", "value": "60b8d6f1f1f1f1f1f1f1f1f1" },
-            { "key": "UserID", "value": "60b8d6f1f1f1f1f1f1f1f1f2" }
-          ]
-        }
-      },
-      "response": [
-        {
-          "name": "Instant buy",
-          "originalRequest": { "method": "GET", "header": [] },
-          "status": "OK",
-          "code": 200,
-          "body": "{ \"message\": \"Instant buy processed successfully\" }"
-        }
-      ],
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status is OK or Unauthorized', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 400]);",
-              "});",
-              "var json = {};",
-              "try { json = pm.response.json(); } catch (e) {}",
-              "pm.test('Response contains message or error', function () {",
-              "    if (json && json.message) pm.expect(json).to.have.property('message');",
-              "    if (json && json.error) pm.expect(json).to.have.property('error');",
-              "});"
-            ]
-          }
-        }
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 202 or 400', function () { pm.expect(pm.response.code).to.be.oneOf([202,400,401]); });"] } }
       ]
     }
   ]
