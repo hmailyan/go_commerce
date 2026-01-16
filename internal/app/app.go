@@ -11,11 +11,12 @@ import (
 
 	"github.com/hmailyan/go_ecommerce/internal/carts"
 	"github.com/hmailyan/go_ecommerce/internal/products"
+	"github.com/hmailyan/go_ecommerce/internal/shared/cache"
 	"github.com/hmailyan/go_ecommerce/internal/users"
 	"gorm.io/gorm"
 )
 
-func BuildRouter(db *gorm.DB) *gin.Engine {
+func BuildRouter(db *gorm.DB, rds *cache.Redis) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
