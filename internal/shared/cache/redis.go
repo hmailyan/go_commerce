@@ -47,14 +47,13 @@ func (r *Redis) Set(ctx context.Context, key string, val string) {
 	r.GetShardID(key).Set(ctx, key, val, 0)
 }
 
-func (r *Redis) Get(ctx context.Context, key string, ch chan string) error {
+func (r *Redis) Get(ctx context.Context, key string, ch chan string) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	defer close(ch)
 
-	res, err := r.GetShardID(key).Get(ctx, key).Result()
+	res, _ := r.GetShardID(key).Get(ctx, key).Result()
 
 	ch <- res
-	close(ch)
 
-	return err
 }
