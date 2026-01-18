@@ -2,6 +2,8 @@ package products
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -14,12 +16,20 @@ func NewService(r Repository) *Service {
 	}
 }
 
-func (s *Service) Create(ctx context.Context, req CreateRequest) (*Product, error) {
+func (s *Service) Create(ctx context.Context, req CreateRequest, masterID string) (*Product, error) {
 
 	product := &Product{
 		Name:  req.Name,
 		Price: req.Price,
 		Image: req.Image,
+	}
+
+	if masterID != "" {
+		mid, err := uuid.Parse(masterID)
+		if err != nil {
+			return nil, err
+		}
+		product.MasterID = mid
 	}
 
 	err := s.repo.Create(ctx, product)

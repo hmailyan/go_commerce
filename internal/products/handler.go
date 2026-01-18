@@ -23,7 +23,7 @@ func (h *Handler) Create() gin.HandlerFunc {
 			return
 		}
 
-		out, err := h.service.Create(c.Request.Context(), req)
+		out, err := h.service.Create(c.Request.Context(), req, "")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -32,6 +32,27 @@ func (h *Handler) Create() gin.HandlerFunc {
 		c.JSON(http.StatusCreated, out)
 	}
 
+}
+
+func (h *Handler) CreateVariation() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		masterID := c.Param("id")
+		var req CreateRequest
+
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+			return
+		}
+
+		out, err := h.service.Create(c.Request.Context(), req, masterID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, out)
+
+	}
 }
 
 func (h *Handler) List() gin.HandlerFunc {
