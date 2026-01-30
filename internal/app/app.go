@@ -9,6 +9,7 @@ import (
 	"github.com/hmailyan/go_ecommerce/internal/shared/mailer"
 	"github.com/hmailyan/go_ecommerce/internal/shared/utils"
 
+	"github.com/hmailyan/go_ecommerce/internal/brands"
 	"github.com/hmailyan/go_ecommerce/internal/carts"
 	"github.com/hmailyan/go_ecommerce/internal/products"
 	"github.com/hmailyan/go_ecommerce/internal/shared/cache"
@@ -23,6 +24,7 @@ func BuildRouter(db *gorm.DB, rds *cache.Redis) *gin.Engine {
 	userRepo := users.NewRepository(db)
 	productRepo := products.NewRepository(db)
 	cartRepo := carts.NewRepository(db)
+	brandRepo := brands.NewRepository(db)
 
 	hasher := utils.NewPasswordUtils()
 	tokenGen := utils.NewTokenUtils()
@@ -38,15 +40,18 @@ func BuildRouter(db *gorm.DB, rds *cache.Redis) *gin.Engine {
 	userService := users.NewService(userRepo, hasher, tokenGen, smtpMailer)
 	productService := products.NewService(productRepo)
 	cartService := carts.NewService(cartRepo)
+	brandService := brands.NewService(brandRepo)
 
 	userHandler := users.NewHandler(userService)
 	productHandler := products.NewHandler(productService)
 	CartHandler := carts.NewHandler(cartService)
+	BrandHandler := brands.NewHandler(brandService)
 
 	deps := &routes.Dependencies{
 		UserHandler:    userHandler,
 		ProductHandler: productHandler,
 		CartHandler:    CartHandler,
+		BrandHandler:   BrandHandler,
 	}
 
 	routes.RegisterRoutes(r, deps)

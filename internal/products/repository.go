@@ -27,7 +27,7 @@ func (r *Repository) List(ctx context.Context) ([]*Product, error) {
 }
 func (r *Repository) GetByID(ctx context.Context, id string) (*Product, error) {
 	var product Product
-	if err := r.db.Preload("Variations").WithContext(ctx).First(&product, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Variations").Preload("Master").WithContext(ctx).First(&product, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &product, nil
